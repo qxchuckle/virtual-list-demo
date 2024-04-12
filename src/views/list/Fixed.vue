@@ -42,5 +42,6 @@ onMounted(() => {
   max-width: 600px;
   width: 100%;
   height: calc(100vh - 100px);
+  border: 1px solid #333;
 }
 </style>

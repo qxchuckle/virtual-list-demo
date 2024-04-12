@@ -230,7 +230,6 @@ onUnmounted(() => {
 div.virtual-list-container {
   width: 100%;
   height: 100%;
-  border: 1px solid #333;
   div.virtual-list-content {
     width: 100%;
     height: 100%;
@@ -239,8 +238,6 @@ div.virtual-list-container {
       div.virtual-list-item {
         width: 100%;
         box-sizing: border-box;
-        // min-height: 100px;
-        font-size: 16px;
         border: 1px solid #333;
       }
     }

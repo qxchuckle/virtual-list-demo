@@ -23,3 +23,14 @@ export const throttle = (fn: Function, delay: number) => {
     }
   };
 };
+
+// 防抖
+export const debounce = (fn: Function, delay: number) => {
+  let timer: number | null = null;
+  return function (this: any) {
+    if (timer) clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      fn.apply(this, arguments);
+    }, delay);
+  };
+};
