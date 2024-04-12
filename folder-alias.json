@@ -1,0 +1,29 @@
+{
+    "src/components/EstimatedVirtualList.vue": {
+        "description": "不定高"
+    },
+    "src/components/VirtualList.vue": {
+        "description": "定高"
+    },
+    "src/views/List.vue": {
+        "description": "列表"
+    },
+    "src/components/WaterFall.vue": {
+        "description": "瀑布流"
+    },
+    "src/components/WaterFallList.vue": {
+        "description": "瀑布流"
+    },
+    "src/views/list": {
+        "description": "列表"
+    },
+    "src/views/list/WaterFall.vue": {
+        "description": "瀑布流"
+    },
+    "src/views/list/Fixed.vue": {
+        "description": "固高虚拟"
+    },
+    "src/views/list/Estimated.vue": {
+        "description": "不固高虚拟"
+    }
+}

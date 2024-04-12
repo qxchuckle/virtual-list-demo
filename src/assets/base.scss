@@ -1,0 +1,16 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  font-weight: normal;
+}
+
+a {
+  text-decoration: none;
+  color: #363636;
+  transition: all 0.3s;
+  &:hover {
+    color: #49B1F5;
+  }
+}
