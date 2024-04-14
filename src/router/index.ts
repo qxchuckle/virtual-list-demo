@@ -3,6 +3,7 @@ const List = () => import("../views/List.vue");
 const Fixed = () => import("../views/list/Fixed.vue");
 const Estimated = () => import("../views/list/Estimated.vue");
 const WaterFall = () => import("../views/list/WaterFall.vue");
+const VirtualWaterFall = () => import("../views/list/VirtualWaterFall.vue");
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -34,6 +35,11 @@ const router = createRouter({
           name: "WaterFall",
           component: WaterFall,
         },
+        {
+          path: "virtualwaterfall",
+          name: "VirtualWaterFall",
+          component: VirtualWaterFall
+        }
       ],
     }
   ],

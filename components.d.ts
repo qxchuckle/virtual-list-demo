@@ -13,6 +13,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     VietualList: typeof import('./src/components/VietualList.vue')['default']
     VirtualList: typeof import('./src/components/VirtualList.vue')['default']
+    VirtualWaterFallList: typeof import('./src/components/VirtualWaterFallList.vue')['default']
     WaterFall: typeof import('./src/components/WaterFall.vue')['default']
     WaterFallList: typeof import('./src/components/WaterFallList.vue')['default']
   }

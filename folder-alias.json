@@ -25,5 +25,11 @@
     },
     "src/views/list/Estimated.vue": {
         "description": "不固高虚拟"
+    },
+    "src/components/VirtualWaterFallList.vue": {
+        "description": "虚拟瀑布流"
+    },
+    "src/views/list/VirtualWaterFall.vue": {
+        "description": "虚拟瀑布流"
     }
 }

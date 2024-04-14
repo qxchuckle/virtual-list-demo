@@ -2,11 +2,11 @@
 // requestAnimationFrame会在浏览器下一次重绘之前执行回调函数
 export const rafThrottle = (fn: Function) => {
   let ticking = false;
-  return function (this: any) {
+  return function (this: any, ...args: any[]) {
     if (ticking) return;
     ticking = true;
     window.requestAnimationFrame(() => {
-      fn.apply(this, arguments);
+      fn.apply(this, args);
       ticking = false;
     });
   };
@@ -15,10 +15,10 @@ export const rafThrottle = (fn: Function) => {
 // 节流
 export const throttle = (fn: Function, delay: number) => {
   let lastTime = 0;
-  return function (this: any) {
+  return function (this: any, ...args: any[]) {
     const now = Date.now();
     if (now - lastTime > delay) {
-      fn.apply(this, arguments);
+      fn.apply(this, args);
       lastTime = now;
     }
   };
@@ -27,10 +27,10 @@ export const throttle = (fn: Function, delay: number) => {
 // 防抖
 export const debounce = (fn: Function, delay: number) => {
   let timer: number | null = null;
-  return function (this: any) {
+  return function (this: any, ...args: any[]) {
     if (timer) clearTimeout(timer);
     timer = window.setTimeout(() => {
-      fn.apply(this, arguments);
+      fn.apply(this, args);
     }, delay);
   };
 };

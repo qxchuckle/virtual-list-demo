@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="virtual-list-panel"
-    v-loading="props.loading"
-  >
+  <div class="virtual-list-panel" v-loading="props.loading">
     <!-- 虚拟列表容器 -->
     <div class="virtual-list-container" ref="container">
       <!-- 虚拟列表 -->
@@ -82,17 +79,25 @@ const listStyle = computed(() => {
 });
 
 // 滚动回调
-const handleScroll = rafThrottle(() => {
-  if (!container.value) return;
-  // 滚动的时候计算起始索引，从而引起renderList的重新计算
-  startIndex.value = Math.floor(container.value.scrollTop / props.itemHeight);
-  const { scrollTop, clientHeight, scrollHeight } = container.value;
-  // 滚动到底部，触发加载更多
-  const bottom = scrollHeight - clientHeight - scrollTop;
-  if (bottom < 20) {
-    !props.loading && emit("addData");
-  }
-});
+const createHandleScroll = () => {
+  let lastScrollTop = 0;
+  return () => {
+    if (!container.value) return;
+    // 滚动的时候计算起始索引，从而引起renderList的重新计算
+    startIndex.value = Math.floor(container.value.scrollTop / props.itemHeight);
+    const { scrollTop, clientHeight, scrollHeight } = container.value;
+    // 滚动到底部，触发加载更多
+    const bottom = scrollHeight - clientHeight - scrollTop;
+    // 判断是否向下滚动
+    const isScrollingDown = scrollTop > lastScrollTop;
+    // 记录上次滚动的距离
+    lastScrollTop = scrollTop;
+    if (bottom < 20 && isScrollingDown) {
+      !props.loading && emit("addData");
+    }
+  };
+};
+const handleScroll = rafThrottle(createHandleScroll());
 
 // 初始化
 const init = () => {
@@ -118,7 +123,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .virtual-list-panel {
   width: 100%;
   height: 100%;

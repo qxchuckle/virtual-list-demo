@@ -36,6 +36,10 @@ const menu = ref([
     route: "WaterFall",
     title: "瀑布流",
   },
+  {
+    route: "VirtualWaterFall",
+    title: "虚拟瀑布流"
+  }
 ]);
 const clickMenu = (e: MouseEvent) => {
   const node = e.target as HTMLDivElement;

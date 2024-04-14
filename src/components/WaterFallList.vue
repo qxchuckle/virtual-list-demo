@@ -16,7 +16,9 @@
           }"
           :key="index"
         >
-          <img :src="i.src" alt="" @load="computedLayout" />
+          <slot name="item" :item="i" :index="index" :load="imgLoadHandle">
+            <img :src="i.src" @load="imgLoadHandle()" />
+          </slot>
         </div>
       </div>
     </div>
@@ -26,6 +28,7 @@
 <script setup lang="ts">
 interface imgData {
   src: string; // 图片地址
+  [key: string]: any;
 }
 const props = defineProps<{
   loading: boolean; // 加载状态
@@ -39,7 +42,11 @@ const emit = defineEmits<{
 // 定义插槽
 defineSlots<{
   // 插槽本质就是个函数，接收一个参数props，props是一个对象，包含了插槽的所有属性
-  item(props: { item: imgData; index: number }): any;
+  item(props: {
+    item: imgData;
+    index: number;
+    load: typeof computedLayout;
+  }): any;
 }>();
 
 // 状态
@@ -47,10 +54,14 @@ const state = reactive<{
   columnWidth: number; // 列宽
   maxHeight: number; // 最高列高
   firstLength: number; // 第一次加载的数据长度
+  lastLength: number; // 最后一次加载的数据长度
+  loadedLength: number; // 已加载的数据长度
 }>({
   columnWidth: 0,
   maxHeight: 0,
   firstLength: 0,
+  lastLength: 0,
+  loadedLength: 0,
 });
 
 // 获取dom元素
@@ -99,7 +110,7 @@ const setPositions = () => {
       } else {
         img.style.setProperty("--img-tr-y", `${minHeight}px`);
       }
-      img.offsetHeight;
+      img.offsetHeight; // 强制渲染
       img.style.transition = "all 0.3s";
       img.style.setProperty("--img-tr-y", `${minHeight}px`);
     } else {
@@ -110,6 +121,11 @@ const setPositions = () => {
   }
   // 更新最高列高
   state.maxHeight = Math.max.apply(null, columnHeight);
+};
+
+const imgLoadHandle = () => {
+  state.loadedLength++;
+  computedLayout();
 };
 
 // 计算布局
@@ -123,12 +139,10 @@ const createResizeComputedLayout = () => {
   let timer: number;
   return () => {
     computedColumWidth();
-    nextTick(() => {
-      window.requestAnimationFrame(() => {
-        timer = setTimeout(() => {
-          setPositions();
-        }, 200);
-      });
+    window.requestAnimationFrame(() => {
+      timer = setTimeout(() => {
+        setPositions();
+      }, 300);
     });
   };
 };
@@ -161,38 +175,56 @@ onUnmounted(() => {
   window.removeEventListener("resize", resizeHandler);
 });
 
-const handleScroll = rafThrottle(() => {
-  if (!containerRef.value) return;
-  const { scrollTop, clientHeight, scrollHeight } = containerRef.value;
-  const bottom = scrollHeight - clientHeight - scrollTop;
-  if (bottom < 20) {
-    !props.loading && emit("addData");
-    containerRef.value.offsetHeight;
-  }
-});
+// 滚动回调
+const createHandleScroll = () => {
+  let lastScrollTop = 0;
+  return () => {
+    if (!containerRef.value) return;
+    const { scrollTop, clientHeight, scrollHeight } = containerRef.value;
+    const bottom = scrollHeight - clientHeight - scrollTop;
+    // 判断是否向下滚动
+    const isScrollingDown = scrollTop > lastScrollTop;
+    // 记录上次滚动的距离
+    lastScrollTop = scrollTop;
+    if (bottom < 20 && isScrollingDown) {
+      // 只有本次加载的数据加载完毕后才能继续加载
+      if (state.loadedLength >= props.data.length - state.lastLength) {
+        // 记录上次加载的数据长度
+        state.lastLength = props.data.length;
+        state.loadedLength = 0;
+        // 加载新数据
+        !props.loading && emit("addData");
+      }
+      containerRef.value.offsetHeight;
+    }
+  };
+};
+const handleScroll = rafThrottle(createHandleScroll());
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .water-fall-panel {
   height: 100%;
   width: 100%;
-}
-.water-fall-container {
-  height: 100%;
-  width: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  .water-fall-content {
+  .water-fall-container {
     height: 100%;
     width: 100%;
-    position: relative;
-    .water-fall-item {
-      position: absolute;
-      transition: all 0.3s;
-      img {
-        width: 100%;
-        object-fit: cover;
-        display: block;
+    overflow-y: auto;
+    overflow-x: hidden;
+    .water-fall-content {
+      height: 100%;
+      width: 100%;
+      position: relative;
+      .water-fall-item {
+        position: absolute;
+        transition: all 0.3s;
+        overflow: hidden;
+        img {
+          width: 100%;
+          object-fit: cover;
+          overflow: hidden;
+          display: block;
+        }
       }
     }
   }

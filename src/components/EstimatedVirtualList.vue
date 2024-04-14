@@ -147,18 +147,27 @@ const updatePositions = () => {
 };
 
 // 滚动回调
-const handleScroll = rafThrottle(() => {
-  const { scrollTop, clientHeight, scrollHeight } = contentRef.value!;
-  // 计算起始索引
-  state.startIndex = findStartingIndex(scrollTop);
-  // 接着处理触底
-  const bottom = scrollHeight - clientHeight - scrollTop;
-  if (bottom < 20) {
-    // 触底触发事件
-    !props.loading && emit("addData");
-    // console.log("触底");
-  }
-});
+const createHandleScroll = () => {
+  let lastScrollTop = 0;
+  return () => {
+    if (!contentRef.value) return;
+    const { scrollTop, clientHeight, scrollHeight } = contentRef.value;
+    // 计算起始索引
+    state.startIndex = findStartingIndex(scrollTop);
+    // 接着处理触底
+    const bottom = scrollHeight - clientHeight - scrollTop;
+    // 判断是否向下滚动
+    const isScrollingDown = scrollTop > lastScrollTop;
+    // 记录上次滚动的距离
+    lastScrollTop = scrollTop;
+    if (bottom < 20 && isScrollingDown) {
+      // 触底触发事件
+      !props.loading && emit("addData");
+      // console.log("触底");
+    }
+  };
+};
+const handleScroll = rafThrottle(createHandleScroll());
 
 // 查找起始索引
 const findStartingIndex = (scrollTop: number) => {
@@ -226,7 +235,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 div.virtual-list-container {
   width: 100%;
   height: 100%;

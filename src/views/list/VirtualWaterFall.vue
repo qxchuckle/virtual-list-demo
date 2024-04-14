@@ -1,10 +1,12 @@
 <template>
   <div class="list-container">
-    <WaterFallList
-      :data="data"
+    <virtual-water-fall-list
+      :dataSource="data"
       :loading="loading"
       :column="column"
-      :space="space"
+      :estimatedHeight="50"
+      :gap="gap"
+      :compute="true"
       @add-data="addData"
     >
       <template #item="{ item, index, load }">
@@ -12,13 +14,14 @@
           :style="{
             display: 'flex',
             flexDirection: 'column',
+            animation: 'MoveAnimate 0.25s',
           }"
         >
-          <img :src="item.src" @load="load" />
-          <span>{{ item.title }}</span>
+          <img :src="item.data.src" @load="load" />
+          <span>{{ (index + 1) + " " + item.data.title }}</span>
         </div>
       </template>
-    </WaterFallList>
+    </virtual-water-fall-list>
   </div>
 </template>
 
@@ -31,14 +34,14 @@ const data = ref<
   }[]
 >([]);
 const loading = ref(false);
-const column = ref(4);
-const space = ref(10);
+const column = ref(6);
+const gap = ref(10);
 
-let size = 40;
+let size = 60;
 let page = 1;
 const addData = () => {
-  fetchData();
-  // simulatedData();
+  // fetchData();
+  simulatedData();
 };
 const simulatedData = () => {
   loading.value = true;
@@ -67,6 +70,8 @@ const fetchData = () => {
         list.map((item: any) => ({
           src: item.regular_url,
           title: item.title,
+          height: item.height,
+          width: item.width,
         }))
       );
       loading.value = false;
@@ -82,7 +87,7 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .list-container {
-  max-width: 600px;
+  max-width: 800px;
   width: 100%;
   height: calc(100vh - 100px);
   border: 1px solid #333;
