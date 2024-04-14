@@ -10,7 +10,7 @@
       >
         <div
           class="virtual-waterfall-item"
-          v-for="i in renderList"
+          v-for="i in state.renderList"
           :style="i.style"
           :data-index="i.index"
           :data-column="i.column"
@@ -81,7 +81,7 @@ const state = reactive({
     height: 0,
     renderList: [],
   })),
-  // renderList: [] as RenderItem[], // 渲染列表
+  renderList: [] as RenderItem[], // 渲染列表
   maxHeight: 0, // 最高列高
   minHeight: 0, // 最低列高
   preLen: 0, // 前一次数据长度
@@ -92,57 +92,56 @@ const start = ref(0);
 // 结束渲染的列表高度
 const end = computed(() => start.value + state.viewHeight);
 
-const renderList = computed(() => {
-  return state.queueList.reduce<RenderItem[]>((prev, cur) => {
-    const filteredRenderList = cur.renderList.filter(
-      (i) => i.height + i.offsetY > start.value && i.offsetY < end.value
-    );
-    return prev.concat(filteredRenderList);
-  }, []);
-});
+// const renderList = computed(() => {
+//   return state.queueList.reduce<RenderItem[]>((prev, cur) => {
+//     const filteredRenderList = cur.renderList.filter(
+//       (i) => i.height + i.offsetY > start.value && i.offsetY < end.value
+//     );
+//     return prev.concat(filteredRenderList);
+//   }, []);
+// });
 
-// // 二分查找函数
-// const binarySearch = (arr: any[], target: number) => {
-//   let left = 0;
-//   let right = arr.length - 1;
+// 二分查找函数
+const binarySearch = (arr: any[], target: number) => {
+  let left = 0;
+  let right = arr.length - 1;
 
-//   while (left <= right) {
-//     const mid = Math.floor((left + right) / 2);
-//     if (arr[mid].offsetY === target) {
-//       return mid;
-//     } else if (arr[mid].offsetY < target) {
-//       left = mid + 1;
-//     } else {
-//       right = mid - 1;
-//     }
-//   }
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    if (arr[mid].offsetY === target) {
+      return mid;
+    } else if (arr[mid].offsetY < target) {
+      left = mid + 1;
+    } else {
+      right = mid - 1;
+    }
+  }
 
-//   return left; // 如果没找到，返回应插入的位置
-// };
+  return left; // 如果没找到，返回应插入的位置
+};
 
-// // 计算渲染列表
-// const computedRenderList = () => {
-//   console.log("computedRenderList");
-//   // 清空渲染列表
-//   state.renderList = [];
-//   const pre = props.estimatedHeight;
-//   const top = start.value - pre;
-//   const bottom = end.value + pre;
-
-//   for (let i = 0; i < state.queueList.length; i++) {
-//     const queue = state.queueList[i];
-//     const renderList = queue.renderList;
-//     const startIndex = binarySearch(renderList, top);
-//     const endIndex = binarySearch(renderList, bottom);
-//     // 将这个范围内的元素加入 state.renderList
-//     for (let j = startIndex - 1; j < endIndex + 1; j++) {
-//       const item = renderList[j];
-//       if (item && item.offsetY < state.minHeight) {
-//         state.renderList.push(item);
-//       }
-//     }
-//   }
-// };
+// 计算渲染列表
+const computedRenderList = () => {
+  console.log("computedRenderList");
+  const nextRenderList: RenderItem[] = [];
+  const pre = props.estimatedHeight;
+  const top = start.value - pre;
+  const bottom = end.value + pre;
+  for (let i = 0; i < state.queueList.length; i++) {
+    const renderList = state.queueList[i].renderList;
+    const startIndex = binarySearch(renderList, top);
+    const endIndex = binarySearch(renderList, bottom);
+    // 将这个范围内的元素加入renderList
+    for (let j = startIndex - 1; j < endIndex + 1; j++) {
+      const item = renderList[j];
+      if (item && item.offsetY < state.minHeight) {
+        nextRenderList.push(item);
+      }
+    }
+  }
+  // 覆盖原来的渲染列表
+  state.renderList = nextRenderList;
+};
 
 // 更新最高和最高列高
 const updateMinMaxHeight = () => {
@@ -266,6 +265,7 @@ const computedLayout = (column: number) => {
     // 累加偏移量
     offsetYAccount += item.offsetHeight + props.gap;
   }
+  // computedRenderList();
   // 更新列高最值
   updateMinMaxHeight();
 };
@@ -292,7 +292,7 @@ watch(
   (a, b) => {
     state.preLen = b.length;
     computedQueueList();
-    // computedRenderList();
+    computedRenderList();
   },
   {
     deep: false,
@@ -309,13 +309,13 @@ const createHandleScroll = () => {
     // 计算开始渲染的列表高度，也就是卷去的高度
     start.value = scrollTop;
     // 重新计算渲染列表
-    // computedRenderList();
+    computedRenderList();
     // 判断是否向下滚动
     const isScrollingDown = scrollTop > lastScrollTop;
     // 记录上次滚动的距离
     lastScrollTop = scrollTop;
     // 如果距离底部小于20并且是向下滚动
-    if (isScrollingDown && scrollTop + state.viewHeight + 20 > state.minHeight) {
+    if (isScrollingDown && scrollTop + state.viewHeight > state.minHeight) {
       !props.loading && emit("addData");
     }
   };
