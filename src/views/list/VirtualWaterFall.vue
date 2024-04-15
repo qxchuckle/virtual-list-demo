@@ -14,7 +14,6 @@
           :style="{
             display: 'flex',
             flexDirection: 'column',
-            animation: 'MoveAnimate 0.25s',
           }"
         >
           <img :src="item.data.src" @load="load" />
@@ -34,14 +33,14 @@ const data = ref<
   }[]
 >([]);
 const loading = ref(false);
-const column = ref(6);
+const column = ref(4);
 const gap = ref(10);
 
-let size = 60;
+let size = 40;
 let page = 1;
 const addData = () => {
-  // fetchData();
-  simulatedData();
+  fetchData();
+  // simulatedData();
 };
 const simulatedData = () => {
   loading.value = true;

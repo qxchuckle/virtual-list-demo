@@ -12,17 +12,25 @@
           class="virtual-waterfall-item"
           v-for="i in state.renderList"
           :style="i.style"
-          :data-index="i.index"
           :data-column="i.column"
-          :data-offsetY="i.offsetY"
           :data-renderIndex="i.renderIndex"
           :key="i.index"
         >
-          <slot name="item" :item="i" :index="i.index" :load="imgLoadedHandle">
-            <div class="animation-box">
-              <img :src="i.data.src" @load="imgLoadedHandle" />
-            </div>
-          </slot>
+          <div class="animation-box">
+            <slot
+              name="item"
+              :item="i"
+              :index="i.index"
+              :load="imgLoadedHandle"
+            >
+              <img
+                :src="i.data.src"
+                @load="imgLoadedHandle"
+                v-if="props.compute"
+              />
+              <img :src="i.data.src" v-else />
+            </slot>
+          </div>
         </div>
       </div>
     </div>
@@ -121,8 +129,8 @@ const binarySearch = (arr: any[], target: number) => {
 };
 
 // 计算渲染列表
-const computedRenderList = () => {
-  console.log("computedRenderList");
+const computedRenderList = rafThrottle(() => {
+  // console.log("computedRenderList");
   const nextRenderList: RenderItem[] = [];
   const pre = props.estimatedHeight;
   const top = start.value - pre;
@@ -141,7 +149,7 @@ const computedRenderList = () => {
   }
   // 覆盖原来的渲染列表
   state.renderList = nextRenderList;
-};
+});
 
 // 更新最高和最高列高
 const updateMinMaxHeight = () => {
@@ -159,6 +167,16 @@ const updateMinMaxHeight = () => {
   }
 };
 
+// 计算样式
+const getRenderStyle = (column: number, offsetY: number) => {
+  return {
+    width: state.columnWidth + "px",
+    transform: `translate3d(${
+      column * (state.columnWidth + props.gap)
+    }px, ${offsetY}px, 0)`,
+  };
+};
+
 // 确定每列的渲染列表，增量更新
 const computedQueueList = () => {
   // console.log("computedQueueList");
@@ -168,7 +186,7 @@ const computedQueueList = () => {
     // 获取最小高度的列
     const minColumn = getMinHeightColumn();
     // 图片的渲染高度，默认为预设高度
-    let imgHeight = props.estimatedHeight || img.height || 50;
+    let imgHeight = props.estimatedHeight ?? 50;
     // 如果图片的高度和宽度存在，则计算实际图片的渲染高度
     if (img.height && img.width) {
       imgHeight = (state.columnWidth / img.width) * img.height;
@@ -183,12 +201,7 @@ const computedQueueList = () => {
       data: img,
       offsetY: offsetY,
       height: imgHeight,
-      style: {
-        width: state.columnWidth + "px",
-        transform: `translate3d(${
-          minColumn.index * (state.columnWidth + props.gap)
-        }px, ${offsetY}px, 0)`,
-      },
+      style: getRenderStyle(minColumn.index, offsetY),
     });
     // 更新列的高度
     minColumn.column.height += imgHeight + props.gap;
@@ -227,28 +240,36 @@ const containerRef = ref<HTMLDivElement | null>(null);
 const computedLayout = (column: number) => {
   // console.log("computedLayout", column);
   // 获取实际已渲染的所属列的元素
-  const list = document.querySelectorAll(
-    `[data-column='${column}']`
-  ) as NodeListOf<HTMLDivElement>;
+  // const list = listRef.value!.querySelectorAll(
+  //   `[data-column='${column}']`
+  // ) as NodeListOf<HTMLDivElement>;
+  let list = [];
+  for (let i = 0; i < listRef.value!.children.length; i++) {
+    let child = listRef.value!.children[i] as HTMLDivElement;
+    if (child.matches(`[data-column='${column}']`)) {
+      list.push(child);
+    }
+  }
   // 获取该列的队列信息
   const queue = state.queueList[column];
+  // 获取第一个和最后一个元素的渲染索引
+  const firstRenderIndex = parseInt(
+    list[0].getAttribute("data-renderIndex") || "0"
+  );
+  const lastRenderIndex = firstRenderIndex + list.length - 1;
   // 获取第一个元素的偏移量，作为初始偏移量
-  let offsetYAccount: number = 0;
+  let offsetYAccount = queue.renderList[firstRenderIndex].offsetY;
   // 遍历更新该列的所有元素的信息
   for (let i = 0; i < list.length; i++) {
     const item = list[i];
-    const itemIndex = parseInt(item.getAttribute("data-index") || "0");
     const renderItem =
       state.queueList[column].renderList[
         parseInt(item.getAttribute("data-renderIndex") || "0")
       ];
+    // const itemIndex = parseInt(item.getAttribute("data-index") || "0");
     // 更新图片的高度和宽度
-    props.dataSource[itemIndex].height = item.offsetHeight;
-    props.dataSource[itemIndex].width = item.offsetWidth;
-    // 更新渲染信息
-    if (i === 0) {
-      offsetYAccount = renderItem.offsetY;
-    }
+    // props.dataSource[itemIndex].height = item.offsetHeight;
+    // props.dataSource[itemIndex].width = item.offsetWidth;
     // 更新队列高度，也就是加上新的高度与旧高度的差值
     queue.height += item.offsetHeight - renderItem.height;
     // 更新渲染项高度
@@ -256,16 +277,20 @@ const computedLayout = (column: number) => {
     // 更新渲染项偏移量
     renderItem.offsetY = offsetYAccount;
     // 更新渲染项样式
-    renderItem.style = {
-      width: state.columnWidth + "px",
-      transform: `translate3d(${
-        column * (state.columnWidth + props.gap)
-      }px, ${offsetYAccount}px, 0)`,
-    };
+    renderItem.style = getRenderStyle(column, offsetYAccount);
     // 累加偏移量
     offsetYAccount += item.offsetHeight + props.gap;
   }
-  // computedRenderList();
+  // 更新render列表中后续元素的offsetY信息
+  for (let i = lastRenderIndex + 1; i < queue.renderList.length; i++) {
+    const item = queue.renderList[i];
+    item.offsetY = offsetYAccount;
+    // item.style = getRenderStyle(column, offsetYAccount);
+    offsetYAccount += item.height + props.gap;
+  }
+  // if (column === props.column - 1) {
+  //   computedRenderList();
+  // }
   // 更新列高最值
   updateMinMaxHeight();
 };
@@ -276,8 +301,11 @@ const imgLoadedHandle = function (e: Event) {
   const target = e.target as HTMLImageElement;
   const item = target.closest(".virtual-waterfall-item") as HTMLImageElement;
   if (!item) return;
-  const column = parseInt(item.getAttribute("data-column") || "0");
-  computedLayout(column);
+  computedLayout(parseInt(item.getAttribute("data-column") || "0"));
+  // 添加动画
+  nextTick(() => {
+    item.firstElementChild?.classList.add("active");
+  });
 };
 
 // 计算列宽
@@ -302,10 +330,9 @@ watch(
 // 滚动回调
 const createHandleScroll = () => {
   let lastScrollTop = 0;
-  return () => {
-    // console.log("滚动")
-    if (!containerRef.value) return;
-    const { scrollTop } = containerRef.value;
+  let flag = true;
+  const fn = () => {
+    const { scrollTop, scrollHeight } = containerRef.value!;
     // 计算开始渲染的列表高度，也就是卷去的高度
     start.value = scrollTop;
     // 重新计算渲染列表
@@ -314,27 +341,58 @@ const createHandleScroll = () => {
     const isScrollingDown = scrollTop > lastScrollTop;
     // 记录上次滚动的距离
     lastScrollTop = scrollTop;
-    // 如果距离底部小于20并且是向下滚动
-    if (isScrollingDown && scrollTop + state.viewHeight > state.minHeight) {
+    // 如果触底并且是向下滚动
+    if (isScrollingDown && scrollTop + state.viewHeight + 5 > scrollHeight) {
+      // console.log("加载数据");
       !props.loading && emit("addData");
     }
+    flag = true;
   };
+  const createHandle = (handle: Function) => {
+    return () => {
+      if (!flag) return;
+      flag = false;
+      handle();
+    };
+  };
+  // if ("requestIdleCallback" in window) {
+  //   return createHandle(() => {
+  //     window.requestIdleCallback(fn);
+  //   });
+  // } else if ("requestAnimationFrame" in window) {
+  //   return createHandle(() => {
+  //     window.requestAnimationFrame(fn);
+  //   });
+  // }
+  return createHandle(fn);
 };
-const throttleHandleScroll = throttle(createHandleScroll(), 100);
-const debounceHandleScroll = debounce(createHandleScroll(), 50);
+const handleScrollFun = rafThrottle(createHandleScroll());
+const throttleHandleScroll = throttle(handleScrollFun, 200);
+const debounceHandleScroll = debounce(handleScrollFun, 50);
 const handleScroll = () => {
   debounceHandleScroll();
   throttleHandleScroll();
 };
 
+// resize回调
+const resizeHandler = rafThrottle(() => {
+  computedViewHeight();
+  computedColumWidth();
+  for (let i = 0; i < props.column; i++) {
+    computedLayout(i);
+  }
+});
+
 onMounted(() => {
   computedViewHeight();
   computedColumWidth();
   containerRef.value?.addEventListener("scroll", handleScroll);
+  window.addEventListener("resize", resizeHandler);
 });
 
 onBeforeUnmount(() => {
   containerRef.value?.removeEventListener("scroll", handleScroll);
+  window.removeEventListener("resize", resizeHandler);
 });
 </script>
 
@@ -360,7 +418,11 @@ onBeforeUnmount(() => {
         .animation-box {
           width: 100%;
           height: 100%;
-          animation: MoveAnimate 0.25s;
+          visibility: hidden;
+          &.active {
+            visibility: visible;
+            animation: MoveAnimate 0.3s;
+          }
         }
         img {
           width: 100%;
