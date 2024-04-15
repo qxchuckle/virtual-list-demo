@@ -17,7 +17,7 @@
           :key="index"
         >
           <slot name="item" :item="i" :index="index" :load="imgLoadHandle">
-            <img :src="i.src" @load="imgLoadHandle()" />
+            <img :src="i.src" @load="imgLoadHandle" />
           </slot>
         </div>
       </div>

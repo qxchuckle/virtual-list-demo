@@ -10,14 +10,15 @@
       @add-data="addData"
     >
       <template #item="{ item, index, load }">
-        <div
-          :style="{
-            display: 'flex',
-            flexDirection: 'column',
-          }"
-        >
-          <img :src="item.data.src" @load="load" />
-          <span>{{ (index + 1) + " " + item.data.title }}</span>
+        <div class="item-box">
+          <img
+            :src="item.data.src"
+            @load="load"
+            loading="lazy"
+            fetchpriority="auto"
+            decoding="async"
+          />
+          <span>{{ index + 1 + " " + item.data.title }}</span>
         </div>
       </template>
     </virtual-water-fall-list>
@@ -36,17 +37,17 @@ const loading = ref(false);
 const column = ref(4);
 const gap = ref(10);
 
-let size = 40;
-let page = 1;
 const addData = () => {
   fetchData();
   // simulatedData();
 };
+
+// 模拟数据
 const simulatedData = () => {
   loading.value = true;
   setTimeout(() => {
     data.value = data.value.concat(
-      new Array(size).fill(0).map((_, index) => ({
+      new Array(1000).fill(0).map((_, index) => ({
         src: Mock.Random.image(),
         title: Mock.mock("@ctitle(5, 15)"),
       }))
@@ -54,6 +55,10 @@ const simulatedData = () => {
     loading.value = false;
   }, 1000);
 };
+
+let size = 40;
+let page = 1;
+// 真实数据
 const fetchData = () => {
   loading.value = true;
   fetch(
@@ -79,7 +84,8 @@ const fetchData = () => {
 onMounted(() => {
   addData();
   // setTimeout(() => {
-  //   column.value = 5;
+  //   // 更新列数
+  //   column.value = 3;
   // }, 3000);
 });
 </script>
@@ -90,5 +96,9 @@ onMounted(() => {
   width: 100%;
   height: calc(100vh - 100px);
   border: 1px solid #333;
+  .item-box {
+    display: flex;
+    flex-direction: column;
+  }
 }
 </style>
