@@ -17,7 +17,12 @@
           :data-loaded="i.data.src ? 0 : 1"
           :key="i.index"
         >
-          <div class="animation-box">
+          <div
+            :class="{
+              'animation-box': props.animation === true,
+            }"
+            :style="itemAnimation"
+          >
             <slot
               name="item"
               :item="i"
@@ -39,6 +44,7 @@
 </template>
 
 <script setup lang="ts">
+import { isString } from "element-plus/es/utils/types.mjs";
 import { CSSProperties, withDefaults } from "vue";
 
 // 每个图片的数据
@@ -72,15 +78,25 @@ interface Props {
   gap?: number; // 间距
   dataSource: ImgData[]; // 数据源
   compute?: boolean; // 是否需要动态计算尺寸
+  animation?: boolean | string; // 是否需要动画，也可以传入自定义动画
 }
 const props = withDefaults(defineProps<Props>(), {
   gap: 0,
   compute: true,
+  animation: true,
 });
 // 定义emit
 const emit = defineEmits<{
   addData: [];
 }>();
+
+// 动画
+const itemAnimation = computed(() => {
+  if (!isString(props.animation)) return {};
+  return {
+    animation: props.animation,
+  };
+});
 
 // 状态
 const state = reactive({
@@ -537,7 +553,7 @@ defineExpose({
         &[data-loaded="1"] {
           > .animation-box {
             visibility: visible;
-            animation: MoveAnimate 0.25s;
+            animation: WaterFallItemAnimate 0.25s;
           }
         }
         img {
@@ -550,10 +566,10 @@ defineExpose({
     }
   }
 }
-@keyframes MoveAnimate {
+@keyframes WaterFallItemAnimate {
   from {
     opacity: 0;
-    transform: translateY(200px);
+    transform: translateY(100px);
   }
   to {
     opacity: 1;

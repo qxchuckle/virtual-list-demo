@@ -14,6 +14,7 @@
         :gap="gap"
         :compute="true"
         @add-data="addData"
+        :animation="animation"
         ref="list"
       >
         <template #item="{ item, index, load }">
@@ -41,6 +42,8 @@ const column = ref(4);
 const estimatedHeight = ref(50);
 const gap = ref(10);
 const list = ref<InstanceType<typeof VirtualWaterFallList> | null>(null);
+// const animation = ref("ItemMoveAnimate 0.3s");
+const animation = ref(true);
 
 enum MockType {
   simulated = 0,
@@ -135,6 +138,8 @@ onMounted(() => {
 
 const mock = ref(MockType.simulated);
 const changeMock = async (value: number) => {
+  if (loading.value) return;
+  loading.value = true;
   mock.value = value;
   switch (value) {
     case MockType.simulated:
@@ -149,7 +154,12 @@ const changeMock = async (value: number) => {
   }
   page = 1;
   data.value = [];
-  await addData();
+  try {
+    await addData();
+  } catch (error) {
+    loading.value = false;
+    console.error("数据加载出错", error);
+  }
   list.value?.reload();
 };
 </script>
@@ -174,6 +184,17 @@ const changeMock = async (value: number) => {
       display: flex;
       flex-direction: column;
     }
+  }
+}
+</style>
+
+<style>
+@keyframes ItemMoveAnimate {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 </style>
