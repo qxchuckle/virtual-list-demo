@@ -37,8 +37,8 @@ const space = ref(10);
 let size = 40;
 let page = 1;
 const addData = () => {
-  fetchData();
-  // simulatedData();
+  // fetchData();
+  simulatedData();
 };
 const simulatedData = () => {
   loading.value = true;
@@ -82,7 +82,7 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .list-container {
-  max-width: 600px;
+  max-width: 800px;
   width: 100%;
   height: calc(100vh - 100px);
   border: 1px solid #333;

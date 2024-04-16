@@ -34,3 +34,18 @@ export const debounce = (fn: Function, delay: number) => {
     }, delay);
   };
 };
+
+// 空闲工作
+export const idle = (fn: (...args: any[]) => void) => {
+  if ("requestIdleCallback" in window) {
+    return function (this: any, ...args: any[]) {
+      window.requestIdleCallback(fn.bind(this, ...args));
+    };
+  } else if ("requestAnimationFrame" in window) {
+    return function (this: any, ...args: any[]) {
+      window.requestAnimationFrame(fn.bind(this, ...args));
+    };
+  } else {
+    return fn;
+  }
+};

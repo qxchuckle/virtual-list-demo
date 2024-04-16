@@ -14,6 +14,7 @@
           :style="i.style"
           :data-column="i.column"
           :data-renderIndex="i.renderIndex"
+          :data-loaded="i.data.src ? 0 : 1"
           :key="i.index"
         >
           <div class="animation-box">
@@ -27,9 +28,6 @@
                 :src="i.data.src"
                 @load="imgLoadedHandle"
                 v-if="props.compute"
-                loading="lazy"
-                fetchpriority="auto"
-                decoding="async"
               />
               <img :src="i.data.src" v-else />
             </slot>
@@ -71,11 +69,12 @@ interface Props {
   loading: boolean; // 加载状态
   column: number; // 列数
   estimatedHeight: number; // 每项预设高度
-  gap: number; // 间距
+  gap?: number; // 间距
   dataSource: ImgData[]; // 数据源
   compute?: boolean; // 是否需要动态计算尺寸
 }
 const props = withDefaults(defineProps<Props>(), {
+  gap: 0,
   compute: true,
 });
 // 定义emit
@@ -96,7 +95,7 @@ const state = reactive({
   maxHeight: 0, // 最高列高
   minHeight: 0, // 最低列高
   preLen: 0, // 前一次数据长度
-  loadLen: 0, // 已加载的数据长度
+  isScrollingDown: true, // 是否向下滚动
 });
 // 开始渲染的列表高度
 const start = ref(0);
@@ -139,6 +138,8 @@ const computedRenderList = rafThrottle(() => {
   const pre = state.viewHeight / 2;
   const top = start.value - pre;
   const bottom = end.value + pre;
+  // 更新最值
+  updateMinMaxHeight();
   for (let i = 0; i < state.queueList.length; i++) {
     const renderList = state.queueList[i].renderList;
     const startIndex = binarySearch(renderList, top);
@@ -153,6 +154,9 @@ const computedRenderList = rafThrottle(() => {
   }
   // 覆盖原来的渲染列表
   state.renderList = nextRenderList;
+  nextTick(() => {
+    computedLayoutAll();
+  });
 });
 
 // 更新最高和最高列高
@@ -193,13 +197,11 @@ const initQueueList = () => {
 
 // 确定每列的渲染列表，增量更新，可选全量
 const computedQueueList = (total: boolean = false) => {
-  // console.log("computedQueueList");
+  // console.log("computedQueueList", new Date().getTime());
   // 确定更新范围
   const startIndex = total ? 0 : state.preLen;
-  if (total) {
-    // 清空列队列
-    initQueueList();
-  }
+  // 清空列队列
+  total && initQueueList();
   // 遍历数据源
   for (let i = startIndex; i < props.dataSource.length; i++) {
     const img = props.dataSource[i];
@@ -230,6 +232,17 @@ const computedQueueList = (total: boolean = false) => {
   updateMinMaxHeight();
 };
 
+// 判断真实dom上所有item是否都已加载完毕
+const isAllLoad = () => {
+  for (let i = 0; i < listRef.value!.children.length; i++) {
+    const child = listRef.value!.children[i] as HTMLDivElement;
+    if (child.matches("[data-loaded='0']")) {
+      return false;
+    }
+  }
+  return true;
+};
+
 // 获取最小高度的列
 const getMinHeightColumn = () => {
   let minColumnIndex = 0;
@@ -258,17 +271,17 @@ const containerRef = ref<HTMLDivElement | null>(null);
 
 // 计算样式
 /**
- * 
+ *
  * @param column 列索引
- * @param target 触发更新的目标元素，如果没有则更新所有元素的实际尺寸
+ * @param target 触发更新的目标元素所在的渲染队列索引
  */
 const computedLayout = (
   column: number,
-  target: HTMLDivElement | undefined = undefined
+  targetRenderIndex: number | number[] | undefined = undefined
 ) => {
-  const targetRenderIndex = target
-    ? parseInt(target.getAttribute("data-renderIndex") || "0")
-    : null;
+  // console.log("computedLayout");
+  const isArrayTarget = Array.isArray(targetRenderIndex);
+  // 缓存当前列已渲染的所有元素
   let list = [];
   for (let i = 0; i < listRef.value!.children.length; i++) {
     let child = listRef.value!.children[i] as HTMLDivElement;
@@ -276,6 +289,7 @@ const computedLayout = (
       list.push(child);
     }
   }
+  if (!list.length) return;
   // 获取该列的队列信息
   const queue = state.queueList[column];
   // 获取第一个和最后一个元素的渲染索引
@@ -292,11 +306,17 @@ const computedLayout = (
     const renderItem =
       queue.renderList[parseInt(item.getAttribute("data-renderIndex") || "0")];
     // 如果没有目标，或渲染索引相同，则可以更新实际尺寸
-    if (!target || renderItem.renderIndex === targetRenderIndex) {
-      // 更新队列高度，也就是加上新的高度与旧高度的差值
-      queue.height += item.offsetHeight - renderItem.height;
-      // 更新渲染项高度
-      renderItem.height = item.offsetHeight;
+    if (
+      !targetRenderIndex ||
+      renderItem.renderIndex === targetRenderIndex ||
+      (isArrayTarget && targetRenderIndex.includes(renderItem.renderIndex))
+    ) {
+      if (item.getAttribute("data-loaded") === "1") {
+        // 更新队列高度，也就是加上新的高度与旧高度的差值
+        queue.height += item.offsetHeight - renderItem.height;
+        // 更新渲染项高度
+        renderItem.height = item.offsetHeight;
+      }
     }
     // 更新渲染项偏移量
     renderItem.offsetY = offsetYAccount;
@@ -305,29 +325,59 @@ const computedLayout = (
     // 累加偏移量
     offsetYAccount += renderItem.height + props.gap;
   }
+  // 如果不是向下滚动，不需要更新后续元素
+  if (!state.isScrollingDown) return;
+  // 没必要更新所有元素，预加载一些就行了
+  // const preloadIndex = queue.renderList.length;
+  const i = list.length * props.column + lastRenderIndex;
+  const preloadIndex =
+    i > queue.renderList.length ? queue.renderList.length : i;
   // 更新render列表中后续元素的offsetY信息
-  for (let i = lastRenderIndex + 1; i < queue.renderList.length; i++) {
+  for (let i = lastRenderIndex + 1; i < preloadIndex; i++) {
     const item = queue.renderList[i];
     item.offsetY = offsetYAccount;
     item.style = getRenderStyle(column, offsetYAccount);
     offsetYAccount += item.height + props.gap;
   }
   // console.log(column, queue);
-  // 更新列高最值
-  updateMinMaxHeight();
+  // 更新最值
+  // updateMinMaxHeight();
+};
+
+// 重新计算整个list布局
+const computedLayoutAll = () => {
+  for (let i = 0; i < props.column; i++) {
+    computedLayout(i);
+  }
 };
 
 // 图片加载完成后，计算样式
+// let itemCache: HTMLImageElement[] = [];
 const imgLoadedHandle = function (e: Event) {
   const target = e.target as HTMLImageElement;
   const item = target.closest(".virtual-waterfall-item") as HTMLImageElement;
   if (!item) return;
-  // 添加动画
-  nextTick(() => {
-    item.firstElementChild?.classList.add("active");
-  });
+  // 标记已加载
+  item.setAttribute("data-loaded", "1");
   if (!props.compute) return;
-  computedLayout(parseInt(item.getAttribute("data-column") || "0"), item);
+  // itemCache.push(item);
+  // if (isAllLoad()) {
+  //   for (let i = 0; i < props.column; i++) {
+  //     computedLayout(i);
+  //   }
+  //   for (let i = 0; i < itemCache.length; i++) {
+  //     const item = itemCache[i];
+  //     // 添加动画
+  //     nextTick(() => {
+  //       item.firstElementChild?.classList.add("active");
+  //     });
+  //   }
+  //   itemCache = [];
+  // }
+  computedLayout(
+    parseInt(item.getAttribute("data-column") || "0"),
+    parseInt(item.getAttribute("data-renderIndex") || "0")
+  );
 };
 
 // 计算列宽
@@ -337,11 +387,30 @@ const computedColumWidth = () => {
     (listRef.value.clientWidth - (props.column - 1) * props.gap) / props.column;
 };
 
+let isReload = false;
+const reload = () => {
+  isReload = true;
+  // 全量更新列队列
+  computedQueueList(true);
+  // 清空渲染列表
+  state.renderList = [];
+  // 滚动回顶部，不然列数改变再后往上滚动，前面已经渲染过的元素会闪
+  containerRef.value!.scrollTop = 0;
+  start.value = 0;
+  nextTick(() => {
+    computedRenderList();
+  });
+};
+
 watch(
   () => props.dataSource,
   (a, b) => {
     state.preLen = b?.length ?? 0;
     if (!a.length) return;
+    if (isReload) {
+      isReload = false;
+      return;
+    }
     computedQueueList();
     computedRenderList();
   },
@@ -362,13 +431,22 @@ const createHandleScroll = () => {
     // 重新计算渲染列表
     computedRenderList();
     // 判断是否向下滚动
-    const isScrollingDown = scrollTop > lastScrollTop;
+    state.isScrollingDown = scrollTop > lastScrollTop;
     // 记录上次滚动的距离
     lastScrollTop = scrollTop;
     // 如果触底并且是向下滚动
-    if (isScrollingDown && scrollTop + state.viewHeight + 5 > scrollHeight) {
+    if (
+      !props.loading &&
+      state.isScrollingDown &&
+      scrollTop + state.viewHeight + 5 > scrollHeight
+    ) {
       // console.log("加载数据");
-      !props.loading && emit("addData");
+      // !props.loading && emit("addData");
+      const allLoaded = isAllLoad();
+      if (allLoaded) {
+        isReload && (isReload = false);
+        emit("addData");
+      }
     }
     flag = true;
   };
@@ -391,7 +469,7 @@ const createHandleScroll = () => {
   return createHandle(fn);
 };
 const handleScrollFun = createHandleScroll();
-const throttleHandleScroll = throttle(handleScrollFun, 200);
+const throttleHandleScroll = throttle(handleScrollFun, 250);
 const debounceHandleScroll = debounce(handleScrollFun, 50);
 const handleScroll = () => {
   debounceHandleScroll();
@@ -403,10 +481,6 @@ const resizeHandler = rafThrottle(() => {
   computedViewHeight();
   computedColumWidth();
   computedRenderList();
-  // 重新计算每列布局
-  for (let i = 0; i < props.column; i++) {
-    computedLayout(i);
-  }
 });
 
 onMounted(() => {
@@ -427,19 +501,13 @@ watch(
   () => {
     // 计算列宽
     computedColumWidth();
-    // 全量更新列队列
-    computedQueueList(true);
-    // 清空渲染列表
-    state.renderList = [];
-    // 滚动回顶部，不然列数改变再后往上滚动，前面已经渲染过的元素会闪
-    containerRef.value!.scrollTop = 0;
-    start.value = 0;
-    nextTick(() => {
-      // 计算渲染列表
-      computedRenderList();
-    });
+    reload();
   }
 );
+
+defineExpose({
+  reload,
+});
 </script>
 
 <style lang="scss">
@@ -461,11 +529,13 @@ watch(
         overflow: hidden;
         box-sizing: border-box;
         transform: translate3d(0);
-        .animation-box {
+        > .animation-box {
           width: 100%;
           height: 100%;
           visibility: hidden;
-          &.active {
+        }
+        &[data-loaded="1"] {
+          > .animation-box {
             visibility: visible;
             animation: MoveAnimate 0.25s;
           }
