@@ -1,5 +1,6 @@
 <template>
   <div class="virtual-waterfall-panel" v-loading="props.loading">
+    <component :is="'style'">{{ animationStyle }}</component>
     <div class="virtual-waterfall-container" ref="containerRef">
       <div
         class="virtual-waterfall-list"
@@ -17,12 +18,7 @@
           :data-loaded="i.data.src ? 0 : 1"
           :key="i.index"
         >
-          <div
-            :class="{
-              'animation-box': props.animation === true,
-            }"
-            :style="itemAnimation"
-          >
+          <div class="animation-box">
             <slot
               name="item"
               :item="i"
@@ -90,12 +86,23 @@ const emit = defineEmits<{
   addData: [];
 }>();
 
-// 动画
-const itemAnimation = computed(() => {
-  if (!isString(props.animation)) return {};
-  return {
-    animation: props.animation,
-  };
+// 动画样式
+const animationStyle = computed(() => {
+  // 默认动画
+  let animation = "WaterFallItemAnimate 0.25s";
+  // 如果为false，则不需要动画
+  if (props.animation === false) {
+    animation = "none";
+  }
+  // 如果是字符串，则使用自定义动画
+  if (typeof props.animation === "string") {
+    animation = props.animation;
+  }
+  return `
+    .virtual-waterfall-list>.virtual-waterfall-item[data-loaded="1"]>.animation-box {
+      animation: ${animation};
+    }
+  `;
 });
 
 // 状态
@@ -545,15 +552,17 @@ defineExpose({
         overflow: hidden;
         box-sizing: border-box;
         transform: translate3d(0);
-        > .animation-box {
+        > .content {
           width: 100%;
-          height: 100%;
+          height: auto;
+        }
+        > .animation-box {
           visibility: hidden;
         }
         &[data-loaded="1"] {
           > .animation-box {
             visibility: visible;
-            animation: WaterFallItemAnimate 0.25s;
+            // animation: WaterFallItemAnimate 0.25s;
           }
         }
         img {
