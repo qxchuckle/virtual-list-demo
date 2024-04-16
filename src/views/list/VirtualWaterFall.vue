@@ -133,7 +133,7 @@ onMounted(() => {
   // }, 3000);
 });
 
-const mock = ref(MockType.noImg);
+const mock = ref(MockType.simulated);
 const changeMock = async (value: number) => {
   mock.value = value;
   switch (value) {

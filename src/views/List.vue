@@ -18,6 +18,11 @@
     <div class="container">
       <RouterView></RouterView>
     </div>
+    <div class="footer">
+      <a href="https://github.com/qxchuckle/virtual-list-demo"
+        >GitHub: qxchuckle/virtual-list-demo</a
+      >
+    </div>
   </div>
 </template>
 
@@ -38,8 +43,8 @@ const menu = ref([
   },
   {
     route: "VirtualWaterFall",
-    title: "虚拟瀑布流"
-  }
+    title: "虚拟瀑布流",
+  },
 ]);
 const clickMenu = (e: MouseEvent) => {
   const node = e.target as HTMLDivElement;
@@ -71,7 +76,10 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .list {
+  height: 100vh;
   width: 100%;
+  display: flex;
+  flex-direction: column;
   .header {
     background-color: #f0f0f0;
     width: 100%;
@@ -104,6 +112,21 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     margin-top: 15px;
+    flex: 1;
+  }
+  .footer {
+    width: 100%;
+    a {
+      font-size: 14px;
+      color: #ccc;
+      margin: 0 auto;
+      display: block;
+      width: fit-content;
+      transition: color 0.3s;
+      &:hover {
+        color: #409eff;
+      }
+    }
   }
 }
 </style>
