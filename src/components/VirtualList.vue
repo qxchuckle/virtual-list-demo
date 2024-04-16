@@ -99,6 +99,16 @@ const createHandleScroll = () => {
 };
 const handleScroll = rafThrottle(createHandleScroll());
 
+const handleResize = rafThrottle(() => {
+  if (!container.value) return;
+  // 重新计算可视区域高度
+  state.viewHeight = container.value.offsetHeight ?? 0;
+  // 重新计算渲染数量
+  state.renderCount = Math.ceil(state.viewHeight / props.itemHeight) + 1;
+  // 重新计算起始索引
+  startIndex.value = Math.floor(container.value.scrollTop / props.itemHeight);
+});
+
 // 初始化
 const init = () => {
   // 获取容器高度作为可视区域高度
@@ -107,11 +117,14 @@ const init = () => {
   state.renderCount = Math.ceil(state.viewHeight / props.itemHeight) + 1;
   // 绑定滚动事件
   container.value?.addEventListener("scroll", handleScroll);
+  // 绑定resize事件
+  window.addEventListener("resize", handleResize);
 };
 
 // 销毁
 const destroy = () => {
   container.value?.removeEventListener("scroll", handleScroll);
+  window.removeEventListener("resize", handleResize);
 };
 
 onMounted(() => {

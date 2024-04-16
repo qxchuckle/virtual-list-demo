@@ -195,17 +195,26 @@ const findStartingIndex = (scrollTop: number) => {
   return mid;
 };
 
+const handleResize = rafThrottle(() => {
+  if (!contentRef.value) return;
+  state.viewHeight = contentRef.value.offsetHeight ?? 0;
+  state.renderCount = Math.ceil(state.viewHeight / props.estimatedHeight) + 1;
+  state.startIndex = findStartingIndex(contentRef.value.scrollTop);
+});
+
 // 初始化
 const init = () => {
   state.viewHeight = contentRef.value?.offsetHeight ?? 0;
   // 不定高的渲染数量也是确定的，根据item预设高度得到，所以预设高度应该根据实际情况设置，最好偏小
   state.renderCount = Math.ceil(state.viewHeight / props.estimatedHeight) + 1;
   contentRef.value?.addEventListener("scroll", handleScroll);
+  window.addEventListener("resize", handleResize);
 };
 
 // 销毁
 const destroy = () => {
   contentRef.value?.removeEventListener("scroll", handleScroll);
+  window.removeEventListener("resize", handleResize);
 };
 
 // 当list dom渲染完成后，初始化位置信息，当dataSource变化时，也重新初始化位置信息
