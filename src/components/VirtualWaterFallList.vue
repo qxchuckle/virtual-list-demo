@@ -40,7 +40,6 @@
 </template>
 
 <script setup lang="ts">
-import { isString } from "element-plus/es/utils/types.mjs";
 import { CSSProperties, withDefaults } from "vue";
 
 // 每个图片的数据
@@ -75,11 +74,13 @@ interface Props {
   dataSource: ImgData[]; // 数据源
   compute?: boolean; // 是否需要动态计算尺寸
   animation?: boolean | string; // 是否需要动画，也可以传入自定义动画
+  bufferHeight?: number; // 缓冲高度，会提前渲染一部分数据
 }
 const props = withDefaults(defineProps<Props>(), {
   gap: 0,
   compute: true,
   animation: true,
+  bufferHeight: -1,
 });
 // 定义emit
 const emit = defineEmits<{
@@ -158,7 +159,7 @@ const binarySearch = (arr: any[], target: number) => {
 const computedRenderList = rafThrottle(() => {
   // console.log("computedRenderList");
   const nextRenderList: RenderItem[] = [];
-  const pre = state.viewHeight / 2;
+  const pre = props.bufferHeight >= 0 ? props.bufferHeight : state.viewHeight / 2;
   const top = start.value - pre;
   const bottom = end.value + pre;
   // 更新最值
@@ -513,7 +514,7 @@ onMounted(() => {
   window.addEventListener("resize", resizeHandler);
 });
 
-onBeforeUnmount(() => {
+onUnmounted(() => {
   containerRef.value?.removeEventListener("scroll", handleScroll);
   window.removeEventListener("resize", resizeHandler);
 });

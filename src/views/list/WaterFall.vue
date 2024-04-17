@@ -44,8 +44,8 @@ const simulatedData = () => {
   loading.value = true;
   setTimeout(() => {
     data.value = data.value.concat(
-      new Array(size).fill(0).map((_, index) => ({
-        src: Mock.Random.image(),
+      new Array(size * 2).fill(0).map((_, index) => ({
+        src: Mock.Random.dataImage(),
         title: Mock.mock("@ctitle(5, 15)"),
       }))
     );

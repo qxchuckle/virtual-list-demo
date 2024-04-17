@@ -71,8 +71,8 @@ const simulatedData = () => {
   return new Promise((resolve) => {
     setTimeout(() => {
       data.value = data.value.concat(
-        new Array(500).fill(0).map((_, index) => ({
-          src: Mock.Random.image(),
+        new Array(size * 2).fill(0).map((_, index) => ({
+          src: Mock.Random.dataImage(),
           title: Mock.mock("@ctitle(5, 15)"),
         }))
       );
