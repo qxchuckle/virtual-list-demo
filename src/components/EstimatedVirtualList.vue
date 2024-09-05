@@ -60,6 +60,8 @@ const endIndex = computed(() =>
 const renderList = computed(() =>
   props.dataSource.slice(state.startIndex, endIndex.value)
 );
+// 位置信息
+const positions = ref<PosInfo[]>([]);
 // 动态样式
 const listStyle = computed(() => {
   // 起始元素的top就是虚拟列表的前置占位高度
@@ -69,8 +71,6 @@ const listStyle = computed(() => {
     transform: `translate3d(0, ${preHeight}px, 0)`,
   } as CSSProperties;
 });
-// 位置信息
-const positions = ref<PosInfo[]>([]);
 // 获取dom元素
 const contentRef = ref<HTMLDivElement>();
 const listRef = ref<HTMLDivElement>();
@@ -83,7 +83,7 @@ const initPositions = () => {
   const preTop = positions.value[state.preLen - 1]?.bottom ?? 0;
   const preBottom = positions.value[state.preLen - 1]?.bottom ?? 0;
   for (let i = 0; i < disLen; i++) {
-    const item = props.dataSource[state.preLen + i];
+    // const item = props.dataSource[state.preLen + i];
     pos.push({
       height: props.estimatedHeight, // 初始化时传入预设高度
       top: preTop + i * props.estimatedHeight, // 前一个的bottom就是下一个的top
