@@ -1,12 +1,12 @@
 <template>
   <!-- 容器 -->
-  <div class="virtual-list-container" v-loading="props.loading">
+  <div class="estimated-virtual-list-container" v-loading="props.loading">
     <!-- 内容 -->
-    <div class="virtual-list-content" ref="contentRef">
+    <div class="estimated-virtual-list-content" ref="contentRef">
       <!-- 虚拟列表 -->
-      <div class="virtual-list" ref="listRef" :style="listStyle">
+      <div class="estimated-virtual-list" ref="listRef" :style="listStyle">
         <div
-          class="virtual-list-item"
+          class="estimated-virtual-list-item"
           v-for="(i, index) in renderList"
           :id="String(state.startIndex + index)"
           :key="state.startIndex + index"
@@ -19,7 +19,20 @@
 </template>
 
 <script setup lang="ts" generic="T">
-import { CSSProperties } from "vue";
+import {
+  CSSProperties,
+  ref,
+  reactive,
+  computed,
+  watch,
+  defineProps,
+  defineEmits,
+  defineSlots,
+  onMounted,
+  onUnmounted,
+  nextTick,
+} from "vue";
+import { throttle, rafThrottle, debounce, idle } from "@/utils";
 // props类型
 interface EstimatedListProps<T> {
   loading: boolean; // 加载状态
@@ -41,7 +54,7 @@ const emit = defineEmits<{
 // 定义插槽类型
 defineSlots<{
   // 插槽本质就是个函数，接收一个参数props，props是一个对象，包含了插槽的所有属性
-  item(props: { item: T; index: number }): any;
+  item?: (props: { item: T; index: number }) => any;
 }>();
 
 // 状态
@@ -245,15 +258,15 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss">
-div.virtual-list-container {
+div.estimated-virtual-list-container {
   width: 100%;
   height: 100%;
-  div.virtual-list-content {
+  div.estimated-virtual-list-content {
     width: 100%;
     height: 100%;
     overflow: auto;
-    div.virtual-list {
-      div.virtual-list-item {
+    div.estimated-virtual-list {
+      div.estimated-virtual-list-item {
         width: 100%;
         box-sizing: border-box;
         border: 1px solid #333;

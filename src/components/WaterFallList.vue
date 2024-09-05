@@ -26,7 +26,21 @@
 </template>
 
 <script setup lang="ts">
-interface imgData {
+import {
+  ref,
+  reactive,
+  computed,
+  watch,
+  defineProps,
+  defineEmits,
+  defineSlots,
+  onMounted,
+  onUnmounted,
+  nextTick,
+} from "vue";
+import { throttle, rafThrottle, debounce, idle } from "@/utils";
+
+interface ItemData {
   src: string; // 图片地址
   [key: string]: any;
 }
@@ -34,7 +48,7 @@ const props = defineProps<{
   loading: boolean; // 加载状态
   column: number; // 列数
   space: number; // 间距
-  data: imgData[]; // 数据
+  data: ItemData[]; // 数据
 }>(); // 定义props
 const emit = defineEmits<{
   addData: [];
@@ -42,11 +56,11 @@ const emit = defineEmits<{
 // 定义插槽
 defineSlots<{
   // 插槽本质就是个函数，接收一个参数props，props是一个对象，包含了插槽的所有属性
-  item(props: {
-    item: imgData;
+  item?: (props: {
+    item: ItemData;
     index: number;
     load: typeof computedLayout;
-  }): any;
+  }) => any;
 }>();
 
 // 状态

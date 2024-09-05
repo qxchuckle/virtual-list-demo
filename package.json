@@ -1,13 +1,22 @@
 {
-  "name": "qx-vue-list",
+  "name": "qx-vue-virtual-list",
   "version": "1.0.0",
-  "private": true,
+  "description": "Vue虚拟列表组件",
+  "private": false,
   "type": "module",
+  "main": "./dist/qx-virtual-list.umd.cjs",
+  "module": "./dist/qx-virtual-list.js",
+  "exports": {
+    ".": {
+      "import": "./dist/qx-virtual-list.js",
+      "require": "./dist/qx-virtual-list.umd.cjs"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
-    "build-only": "vite build",
+    "build-only": "vite build --config vite.config.packages.ts",
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
@@ -32,6 +41,7 @@
     "unplugin-element-plus": "^0.8.0",
     "unplugin-vue-components": "^0.26.0",
     "vite": "^5.2.8",
+    "vite-plugin-dts": "^4.1.0",
     "vue-tsc": "^2.0.11"
   }
 }

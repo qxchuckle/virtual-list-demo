@@ -40,10 +40,24 @@
 </template>
 
 <script setup lang="ts">
-import { CSSProperties, withDefaults } from "vue";
+import {
+  CSSProperties,
+  withDefaults,
+  ref,
+  reactive,
+  computed,
+  watch,
+  defineProps,
+  defineEmits,
+  defineSlots,
+  onMounted,
+  onUnmounted,
+  nextTick,
+} from "vue";
+import { throttle, rafThrottle, debounce, idle } from "@/utils";
 
 // 每个图片的数据
-interface ImgData {
+interface ItemData {
   src: string; // 图片地址
   height?: number; // 图片高度
   width?: number; // 图片宽度
@@ -54,7 +68,7 @@ interface RenderItem {
   index: number; // 位于数据源的索引
   column: number; // 所在列
   renderIndex: number; // 渲染索引
-  data: ImgData; // 图片数据
+  data: ItemData; // 图片数据
   offsetY: number; // y轴偏移量
   height: number; // 高度
   style: CSSProperties; // 用于渲染视图上的样式（宽、高、偏移量）
@@ -71,7 +85,7 @@ interface Props {
   column: number; // 列数
   estimatedHeight: number; // 每项预设高度
   gap?: number; // 间距
-  dataSource: ImgData[]; // 数据源
+  dataSource: ItemData[]; // 数据源
   compute?: boolean; // 是否需要动态计算尺寸
   animation?: boolean | string; // 是否需要动画，也可以传入自定义动画
   bufferHeight?: number; // 缓冲高度，会提前渲染一部分数据

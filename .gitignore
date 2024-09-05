@@ -31,3 +31,5 @@ coverage
 stats.html
 .vercel
 extractedCode.txt
+
+dist

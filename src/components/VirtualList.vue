@@ -21,7 +21,20 @@
 </template>
 
 <script setup lang="ts" generic="T">
-import { CSSProperties } from "vue";
+import {
+  CSSProperties,
+  ref,
+  reactive,
+  computed,
+  watch,
+  defineProps,
+  defineEmits,
+  defineSlots,
+  onMounted,
+  onUnmounted,
+  nextTick,
+} from "vue";
+import { throttle, rafThrottle, debounce, idle } from "@/utils";
 
 const props = defineProps<{
   loading: boolean; // 加载状态
@@ -33,8 +46,8 @@ const emit = defineEmits<{
 }>(); // 定义emit
 // 定义插槽类型
 defineSlots<{
-  // 插槽本质就是个函数，接收一个参数props，props是一个对象，包含了插槽的所有属性
-  item(props: { item: T; index: number }): any;
+  // 插槽本质上是一个函数，接收一个参数 props，props 是包含了插槽的所有属性的对象
+  item?: (props: { item: T; index: number }) => any;
 }>();
 
 // 获取dom元素
